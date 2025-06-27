@@ -1,0 +1,664 @@
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { FiUpload, FiX, FiImage, FiFileText, FiCode, FiSave } from 'react-icons/fi';
+import { useSearch } from '../context/SearchContext';
+import CompactDropdown from '../components/CompactDropdown';
+import AdminNavbar from '../components/AdminNavbar';
+
+const ContentUpload = () => {
+  const { refreshContent } = useSearch();
+  const location = useLocation();
+
+  // Check if this is accessed through admin route
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'OOP',
+    subTopic: '',
+    content: '',
+    codeExample: '',
+    problemStatement: '',
+    solution: '',
+    difficulty: 'Easy',
+    tags: ''
+  });
+
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [previewImages, setPreviewImages] = useState([]);
+  const [showCustomTopicInput, setShowCustomTopicInput] = useState(false);
+  const [customTopic, setCustomTopic] = useState('');
+  const [dynamicSubTopics, setDynamicSubTopics] = useState({
+    'OOP': [],
+    'DSA': []
+  });
+
+  const { title, category, subTopic, content, codeExample, problemStatement, solution, difficulty, tags } = formData;
+
+  // Predefined subtopics for each category
+  const categorySubTopics = {
+    'OOP': [
+      'Classes & Objects', 'Inheritance', 'Polymorphism', 'Encapsulation',
+      'Abstraction', 'Design Patterns', 'SOLID Principles', 'Constructors',
+      'Access Modifiers', 'Method Overriding', 'Method Overloading',
+      'Static Members', 'Abstract Classes', 'Interfaces'
+    ],
+    'DSA': [
+      'Arrays', 'Strings', 'Two Pointers', 'Sliding Window', 'Greedy',
+      'Linked List', 'Stack', 'Queue', 'Heap', 'Hashing',
+      'Tree', 'Graph', 'Dynamic Programming', 'Backtracking',
+      'Binary Search', 'Sorting', 'Math', 'Bit Manipulation'
+    ]
+  };
+
+  // Get available subtopics based on selected category (predefined + dynamic)
+  const getAvailableSubTopics = () => {
+    const predefinedTopics = categorySubTopics[category] || [];
+    const dynamicTopics = dynamicSubTopics[category] || [];
+
+    // Combine and remove duplicates
+    const allTopics = [...predefinedTopics, ...dynamicTopics];
+    return [...new Set(allTopics)];
+  };
+
+  // Fetch existing topics from database
+  const fetchExistingTopics = async () => {
+    try {
+      const response = await axios.get('/api/content');
+      const content = response.data;
+
+      // Extract unique subtopics for each category
+      const oopTopics = [...new Set(content
+        .filter(item => item.category === 'OOP')
+        .map(item => item.subTopic)
+        .filter(topic => topic && !categorySubTopics.OOP.includes(topic))
+      )];
+
+      const dsaTopics = [...new Set(content
+        .filter(item => item.category === 'DSA')
+        .map(item => item.subTopic)
+        .filter(topic => topic && !categorySubTopics.DSA.includes(topic))
+      )];
+
+      setDynamicSubTopics({
+        'OOP': oopTopics,
+        'DSA': dsaTopics
+      });
+    } catch (error) {
+      console.error('Error fetching existing topics:', error);
+    }
+  };
+
+  // Set initial subtopic when component mounts and fetch existing topics
+  useEffect(() => {
+    fetchExistingTopics();
+  }, []);
+
+  useEffect(() => {
+    const availableSubTopics = getAvailableSubTopics();
+    if (availableSubTopics.length > 0 && !subTopic) {
+      setFormData(prev => ({ ...prev, subTopic: availableSubTopics[0] }));
+    }
+  }, [dynamicSubTopics]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+
+    // If category changes, reset subtopic to first available option
+    if (name === 'category') {
+      const availableSubTopics = categorySubTopics[value] || [];
+      setFormData({
+        ...formData,
+        [name]: value,
+        subTopic: availableSubTopics.length > 0 ? availableSubTopics[0] : ''
+      });
+      setShowCustomTopicInput(false);
+      setCustomTopic('');
+    } else if (name === 'subTopic') {
+      // Handle "Other" option selection
+      if (value === 'OTHER') {
+        setShowCustomTopicInput(true);
+        setFormData({ ...formData, [name]: '' });
+      } else {
+        setShowCustomTopicInput(false);
+        setCustomTopic('');
+        setFormData({ ...formData, [name]: value });
+      }
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleCustomTopicChange = (e) => {
+    const value = e.target.value;
+    setCustomTopic(value);
+    setFormData({ ...formData, subTopic: value });
+  };
+
+  const isTopicDuplicate = (topicName) => {
+    const availableTopics = getAvailableSubTopics();
+    return availableTopics.some(topic =>
+      topic.toLowerCase() === topicName.toLowerCase()
+    );
+  };
+
+  const onImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(files);
+
+    // Create preview URLs
+    const previews = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file),
+      name: file.name
+    }));
+    setPreviewImages(previews);
+  };
+
+  const removeImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    const newPreviews = previewImages.filter((_, i) => i !== index);
+    
+    // Revoke the URL to prevent memory leaks
+    URL.revokeObjectURL(previewImages[index].url);
+    
+    setImages(newImages);
+    setPreviewImages(newPreviews);
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate custom topic if "Other" is selected
+    if (showCustomTopicInput) {
+      if (!customTopic.trim()) {
+        toast.error('Please enter a topic name');
+        return;
+      }
+      if (customTopic.length < 3) {
+        toast.error('Topic name must be at least 3 characters long');
+        return;
+      }
+      if (isTopicDuplicate(customTopic)) {
+        toast.error('This topic already exists. Please choose a different name.');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const formDataToSend = new FormData();
+
+      // Append text fields
+      Object.keys(formData).forEach(key => {
+        formDataToSend.append(key, formData[key]);
+      });
+
+      // Append images
+      images.forEach(image => {
+        formDataToSend.append('images', image);
+      });
+
+      await axios.post('/api/content', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Show success message with custom topic info
+      if (showCustomTopicInput) {
+        toast.success(`Content uploaded successfully! New topic "${customTopic}" created in ${category}.`);
+
+        // Add the new topic to dynamic topics immediately
+        setDynamicSubTopics(prev => ({
+          ...prev,
+          [category]: [...new Set([...prev[category], customTopic])]
+        }));
+      } else {
+        toast.success('Content uploaded successfully!');
+      }
+
+      // Refresh search context to include new content
+      refreshContent();
+
+      // Refresh existing topics to get the latest from database
+      fetchExistingTopics();
+
+      // Reset form
+      const initialSubTopic = categorySubTopics.OOP[0]; // Default to first OOP topic
+      setFormData({
+        title: '',
+        category: 'OOP',
+        subTopic: initialSubTopic,
+        content: '',
+        codeExample: '',
+        problemStatement: '',
+        solution: '',
+        difficulty: 'Easy',
+        tags: ''
+      });
+      setImages([]);
+      setPreviewImages([]);
+      setShowCustomTopicInput(false);
+      setCustomTopic('');
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Show admin navbar if accessed through admin route */}
+      {isAdminRoute && <AdminNavbar />}
+
+      <div className="py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Study Content</h1>
+          <p className="text-gray-600">Add new study materials, problems, and solutions to your collection</p>
+        </div>
+
+        {/* Upload Form */}
+        <form onSubmit={onSubmit} className="space-y-8">
+          {/* Basic Information */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiFileText className="mr-2" />
+              Basic Information
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={title}
+                  onChange={onChange}
+                  required
+                  className="input-field"
+                  placeholder="Enter content title"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                  Category *
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={category}
+                  onChange={onChange}
+                  required
+                  className="input-field"
+                >
+                  <option value="OOP">
+                    Object-Oriented Programming ({categorySubTopics.OOP.length + dynamicSubTopics.OOP.length} topics)
+                  </option>
+                  <option value="DSA">
+                    Data Structures & Algorithms ({categorySubTopics.DSA.length + dynamicSubTopics.DSA.length} topics)
+                  </option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Subtopic options will update based on your category selection
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="subTopic" className="block text-sm font-medium text-gray-700 mb-2">
+                  Subtopic *
+                </label>
+                <CompactDropdown
+                  value={showCustomTopicInput ? 'OTHER' : subTopic}
+                  onChange={onChange}
+                  options={getAvailableSubTopics()}
+                  placeholder="Select a subtopic..."
+                  showAddOption={true}
+                  addOptionText="➕ Add New Topic"
+                  required={true}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose from predefined topics or add a new one
+                </p>
+
+                {/* Custom Topic Input */}
+                {showCustomTopicInput && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-fade-in">
+                    <label htmlFor="customTopic" className="block text-sm font-medium text-blue-900 mb-2">
+                      Enter New Topic Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="customTopic"
+                      value={customTopic}
+                      onChange={handleCustomTopicChange}
+                      placeholder={`e.g., Advanced ${category === 'OOP' ? 'Design Patterns' : 'Algorithms'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-colors ${
+                        customTopic && isTopicDuplicate(customTopic)
+                          ? 'border-red-300 focus:ring-red-500'
+                          : 'border-blue-300 focus:ring-blue-500'
+                      }`}
+                      required
+                    />
+
+                    {/* Validation Messages */}
+                    {customTopic && isTopicDuplicate(customTopic) && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center">
+                        <span className="mr-1">⚠️</span>
+                        This topic already exists. Please choose a different name.
+                      </p>
+                    )}
+
+                    {customTopic && !isTopicDuplicate(customTopic) && customTopic.length >= 3 && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center">
+                        <span className="mr-1">✅</span>
+                        Good! This will create a new topic in the {category} category.
+                      </p>
+                    )}
+
+                    {!customTopic && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Enter a unique name for your new {category} topic
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Available Topics Preview */}
+                {!showCustomTopicInput && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-medium text-gray-700 mb-2">
+                      Available {category} Topics ({getAvailableSubTopics().length} total):
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {/* Predefined Topics */}
+                      {categorySubTopics[category].map((topic) => (
+                        <span
+                          key={topic}
+                          className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                            topic === subTopic
+                              ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                              : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {topic}
+                        </span>
+                      ))}
+
+                      {/* Dynamic Topics */}
+                      {dynamicSubTopics[category].map((topic) => (
+                        <span
+                          key={topic}
+                          className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                            topic === subTopic
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              : 'bg-purple-50 text-purple-700 border border-purple-200'
+                          }`}
+                          title="Custom topic"
+                        >
+                          {topic} ✨
+                        </span>
+                      ))}
+
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-200">
+                        + Add New
+                      </span>
+                    </div>
+
+                    {dynamicSubTopics[category].length > 0 && (
+                      <p className="text-xs text-purple-600 mt-2">
+                        ✨ = Custom topics you've created
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-2">
+                  Difficulty
+                </label>
+                <select
+                  id="difficulty"
+                  name="difficulty"
+                  value={difficulty}
+                  onChange={onChange}
+                  className="input-field"
+                >
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                id="tags"
+                name="tags"
+                value={tags}
+                onChange={onChange}
+                className="input-field"
+                placeholder="e.g., inheritance, polymorphism, sorting"
+              />
+            </div>
+          </div>
+
+          {/* Problem Statement */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiFileText className="mr-2" />
+              Problem Statement (Optional)
+            </h2>
+            
+            <div>
+              <textarea
+                id="problemStatement"
+                name="problemStatement"
+                value={problemStatement}
+                onChange={onChange}
+                rows={6}
+                className="input-field"
+                placeholder="Describe the problem or question (supports Markdown)"
+              />
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiFileText className="mr-2" />
+              Main Content *
+            </h2>
+
+            <div>
+              <textarea
+                id="content"
+                name="content"
+                value={content}
+                onChange={onChange}
+                required
+                rows={10}
+                className="input-field font-mono"
+                placeholder="Enter your study content (preserves formatting and line breaks)"
+                style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                💡 Tip: This field preserves your exact formatting, line breaks, and spacing - just like code input
+              </p>
+            </div>
+          </div>
+
+          {/* Code Example */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiCode className="mr-2" />
+              Code Example (Optional)
+            </h2>
+            
+            <div>
+              <textarea
+                id="codeExample"
+                name="codeExample"
+                value={codeExample}
+                onChange={onChange}
+                rows={8}
+                className="input-field font-mono"
+                placeholder="Enter code example"
+              />
+            </div>
+          </div>
+
+          {/* Solution */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiCode className="mr-2" />
+              Solution (Optional)
+            </h2>
+            
+            <div>
+              <textarea
+                id="solution"
+                name="solution"
+                value={solution}
+                onChange={onChange}
+                rows={8}
+                className="input-field"
+                placeholder="Enter solution explanation (supports Markdown)"
+              />
+            </div>
+          </div>
+
+          {/* Image Upload */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <FiImage className="mr-2" />
+              Images (Optional)
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Images (Max 5 files, 5MB each)
+                </label>
+                <div className="flex items-center justify-center w-full">
+                  <label
+                    htmlFor="images"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <FiUpload className="w-8 h-8 mb-4 text-gray-500" />
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                    </div>
+                    <input
+                      id="images"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={onImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Image Previews */}
+              {previewImages.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {previewImages.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <div className="relative overflow-hidden rounded-xl border-2 border-gray-200 bg-white shadow-sm hover:shadow-lg transition-all duration-200">
+                        <img
+                          src={preview.url}
+                          alt={preview.name}
+                          className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                        >
+                          <FiX className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 truncate text-center font-medium">{preview.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={() => {
+                const initialSubTopic = categorySubTopics.OOP[0];
+                setFormData({
+                  title: '',
+                  category: 'OOP',
+                  subTopic: initialSubTopic,
+                  content: '',
+                  codeExample: '',
+                  problemStatement: '',
+                  solution: '',
+                  difficulty: 'Easy',
+                  tags: ''
+                });
+                setImages([]);
+                setPreviewImages([]);
+                setShowCustomTopicInput(false);
+                setCustomTopic('');
+              }}
+              className="btn-secondary"
+            >
+              Clear Form
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <FiSave className="h-4 w-4" />
+                  <span>Save Content</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+      </div>
+    </div>
+  );
+};
+
+export default ContentUpload;
