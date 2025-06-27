@@ -120,10 +120,56 @@ const JavaCodeEditor = ({
   };
 
   const handleKeyDown = (e) => {
+    const start = e.target.selectionStart;
+    const end = e.target.selectionEnd;
+
+    // Auto-bracket completion
+    const bracketPairs = {
+      '(': ')',
+      '[': ']',
+      '{': '}',
+      '"': '"',
+      "'": "'"
+    };
+
+    if (bracketPairs[e.key]) {
+      e.preventDefault();
+      const beforeCursor = code.substring(0, start);
+      const afterCursor = code.substring(end);
+
+      // For quotes, check if we're closing an existing quote
+      if ((e.key === '"' || e.key === "'") && afterCursor.charAt(0) === e.key) {
+        // Move cursor past the existing quote
+        setTimeout(() => {
+          e.target.selectionStart = e.target.selectionEnd = start + 1;
+        }, 0);
+        return;
+      }
+
+      const newCode = beforeCursor + e.key + bracketPairs[e.key] + afterCursor;
+      setCode(newCode);
+
+      // Position cursor between the brackets
+      setTimeout(() => {
+        e.target.selectionStart = e.target.selectionEnd = start + 1;
+      }, 0);
+      return;
+    }
+
+    // Handle closing brackets - skip if next character is the same
+    if ([')', ']', '}', '"', "'"].includes(e.key)) {
+      const nextChar = code.charAt(start);
+      if (nextChar === e.key) {
+        e.preventDefault();
+        setTimeout(() => {
+          e.target.selectionStart = e.target.selectionEnd = start + 1;
+        }, 0);
+        return;
+      }
+    }
+
     if (e.key === 'Tab') {
       e.preventDefault();
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
       const newCode = code.substring(0, start) + '    ' + code.substring(end);
       setCode(newCode);
 
@@ -133,39 +179,57 @@ const JavaCodeEditor = ({
       }, 0);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const start = e.target.selectionStart;
       const lines = code.substring(0, start).split('\n');
       const currentLine = lines[lines.length - 1];
-
-      // Calculate indentation based on Java structure
-      let indent = '';
-      let baseIndent = '';
+      const nextChar = code.charAt(start);
 
       // Get base indentation of current line
-      const match = currentLine.match(/^(\s*)/);
-      if (match) {
-        baseIndent = match[1];
-      }
+      const baseIndentMatch = currentLine.match(/^(\s*)/);
+      const baseIndent = baseIndentMatch ? baseIndentMatch[1] : '';
 
-      // Check if current line ends with opening brace
-      if (currentLine.trim().endsWith('{')) {
-        indent = baseIndent + '    '; // Add 4 spaces for new block
-      } else if (currentLine.trim().endsWith(';') || currentLine.trim() === '') {
-        indent = baseIndent; // Same indentation
-      } else {
-        indent = baseIndent; // Default to same indentation
-      }
+      let indent = baseIndent;
+      let extraNewline = '';
 
-      // Check if we need to reduce indentation (closing brace)
-      const nextChar = code.charAt(start);
-      if (nextChar === '}') {
-        // If next character is closing brace, reduce indent
-        if (indent.length >= 4) {
-          indent = indent.substring(4);
+      // Smart indentation for Java constructs
+      const trimmedLine = currentLine.trim();
+
+      // Check for opening braces
+      if (trimmedLine.endsWith('{')) {
+        indent = baseIndent + '    '; // Increase indentation
+
+        // If next character is closing brace, add extra newline for proper formatting
+        if (nextChar === '}') {
+          extraNewline = '\n' + baseIndent;
         }
       }
+      // Check for method declarations, class declarations, if/for/while statements
+      else if (
+        trimmedLine.includes('public ') ||
+        trimmedLine.includes('private ') ||
+        trimmedLine.includes('protected ') ||
+        trimmedLine.includes('class ') ||
+        trimmedLine.includes('interface ') ||
+        trimmedLine.startsWith('if ') ||
+        trimmedLine.startsWith('for ') ||
+        trimmedLine.startsWith('while ') ||
+        trimmedLine.startsWith('do ') ||
+        trimmedLine.startsWith('switch ') ||
+        trimmedLine.startsWith('try ') ||
+        trimmedLine.startsWith('catch ') ||
+        trimmedLine.startsWith('finally ') ||
+        trimmedLine.startsWith('else')
+      ) {
+        // If line doesn't end with {, maintain same indentation
+        if (!trimmedLine.endsWith('{')) {
+          indent = baseIndent + '    ';
+        }
+      }
+      // Check for array initialization or method calls that might continue
+      else if (trimmedLine.endsWith(',') || trimmedLine.endsWith('(')) {
+        indent = baseIndent + '    ';
+      }
 
-      const newCode = code.substring(0, start) + '\n' + indent + code.substring(start);
+      const newCode = code.substring(0, start) + '\n' + indent + extraNewline + code.substring(start);
       setCode(newCode);
 
       // Set cursor position after the indentation
@@ -174,12 +238,12 @@ const JavaCodeEditor = ({
       }, 0);
     } else if (e.key === '}') {
       // Auto-dedent when typing closing brace
-      const start = e.target.selectionStart;
+      e.preventDefault();
       const lines = code.substring(0, start).split('\n');
       const currentLine = lines[lines.length - 1];
 
       if (currentLine.trim() === '' && currentLine.length >= 4) {
-        // Remove 4 spaces of indentation
+        // Remove 4 spaces of indentation and add closing brace
         const newCurrentLine = currentLine.substring(4);
         const beforeCurrentLine = lines.slice(0, -1).join('\n');
         const afterCursor = code.substring(start);
@@ -200,6 +264,30 @@ const JavaCodeEditor = ({
       setTimeout(() => {
         e.target.selectionStart = e.target.selectionEnd = start + 1;
       }, 0);
+    } else if (e.key === 'Backspace') {
+      // Smart backspace for auto-inserted brackets
+      const beforeCursor = code.charAt(start - 1);
+      const afterCursor = code.charAt(start);
+
+      // Check if we're deleting an opening bracket with its matching closing bracket
+      const bracketPairs = {
+        '(': ')',
+        '[': ']',
+        '{': '}',
+        '"': '"',
+        "'": "'"
+      };
+
+      if (bracketPairs[beforeCursor] === afterCursor) {
+        e.preventDefault();
+        const newCode = code.substring(0, start - 1) + code.substring(start + 1);
+        setCode(newCode);
+
+        setTimeout(() => {
+          e.target.selectionStart = e.target.selectionEnd = start - 1;
+        }, 0);
+        return;
+      }
     }
   };
 
@@ -269,12 +357,15 @@ const JavaCodeEditor = ({
           value={code}
           onChange={handleCodeChange}
           onKeyDown={handleKeyDown}
-          className="w-full h-full p-4 font-mono rounded-md text-sm bg-gray-900 text-gray-100 border-0 resize-none focus:outline-none focus:ring-0 overflow-y-auto"
+          className="w-full h-full p-4 font-mono rounded-md text-sm border-0 resize-none focus:outline-none focus:ring-0 overflow-y-auto"
           placeholder="Enter your Java code here..."
           style={{
             fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
             lineHeight: '1.5',
-            tabSize: 4
+            tabSize: 4,
+            backgroundColor: '#1d1f21', // Tomorrow Night theme background
+            color: '#c5c8c6', // Tomorrow Night theme text color
+            caretColor: '#c5c8c6', // Cursor color
           }}
         />
       ) : (
@@ -315,7 +406,14 @@ const JavaCodeEditor = ({
       </div>
       <div className="flex-1 overflow-y-auto bg-gray-50 p-1">
         {output ? (
-          <pre className="text-sm font-mono whitespace-pre-wrap bg-gray-900 text-gray-100 p-3 rounded break-words">
+          <pre
+            className="text-sm font-mono whitespace-pre-wrap p-3 rounded break-words"
+            style={{
+              backgroundColor: '#1d1f21', // Tomorrow Night theme background (matching editor)
+              color: '#c5c8c6', // Tomorrow Night theme text color
+              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+            }}
+          >
             {output}
           </pre>
         ) : (

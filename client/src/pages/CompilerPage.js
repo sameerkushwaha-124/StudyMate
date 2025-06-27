@@ -146,8 +146,21 @@ const CompilerPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Problem not found'}</p>
-          <button 
-            onClick={() => navigate(-1)}
+          <button
+            onClick={() => {
+              // Check if this is a new tab/window (no history)
+              if (window.history.length <= 1) {
+                // If opened in new tab, close the tab
+                window.close();
+                // Fallback: if window.close() doesn't work, navigate to home
+                setTimeout(() => {
+                  navigate('/');
+                }, 100);
+              } else {
+                // Normal navigation back
+                navigate(-1);
+              }
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Go Back
@@ -166,11 +179,24 @@ const CompilerPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                // Check if this is a new tab/window (no history)
+                if (window.history.length <= 1) {
+                  // If opened in new tab, close the tab
+                  window.close();
+                  // Fallback: if window.close() doesn't work (some browsers block it), navigate to home
+                  setTimeout(() => {
+                    navigate('/');
+                  }, 100);
+                } else {
+                  // Normal navigation back
+                  navigate(-1);
+                }
+              }}
               className="inline-flex items-center px-2 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <FiArrowLeft className="mr-2 h-4 w-4 " />
-              
+              <FiArrowLeft className="mr-2 h-4 w-4" />
+              <span>Back</span>
             </button>
             <div className="h-6 w-px bg-gray-300"></div>
             <div>
