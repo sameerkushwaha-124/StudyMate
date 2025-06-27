@@ -127,7 +127,8 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
       problemStatement,
       solution,
       difficulty,
-      tags
+      tags,
+      enableCompiler
     } = req.body;
 
     // Process uploaded images from Cloudinary
@@ -159,6 +160,7 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
       solution,
       difficulty,
       tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      enableCompiler: enableCompiler === 'true' || enableCompiler === true,
       images,
       createdBy: adminId
     });
@@ -223,7 +225,7 @@ router.put('/:id', adminAuth, upload.array('images', 10), async (req, res) => {
     console.log('Request body keys:', Object.keys(req.body));
     console.log('Files received:', req.files ? req.files.length : 0);
 
-    const { title, category, subTopic, content, codeExample, problemStatement, solution, difficulty, tags, existingImages } = req.body;
+    const { title, category, subTopic, content, codeExample, problemStatement, solution, difficulty, tags, enableCompiler, existingImages } = req.body;
 
     // Validate required fields
     if (!title || !category || !subTopic) {
@@ -372,6 +374,7 @@ router.put('/:id', adminAuth, upload.array('images', 10), async (req, res) => {
         solution,
         difficulty,
         tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        enableCompiler: enableCompiler === 'true' || enableCompiler === true,
         images: allImages
       },
       { new: true }

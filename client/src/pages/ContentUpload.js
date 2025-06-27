@@ -22,7 +22,8 @@ const ContentUpload = () => {
     problemStatement: '',
     solution: '',
     difficulty: 'Easy',
-    tags: ''
+    tags: '',
+    enableCompiler: true
   });
 
   const [images, setImages] = useState([]);
@@ -457,6 +458,26 @@ const ContentUpload = () => {
                 className="input-field"
                 placeholder="e.g., inheritance, polymorphism, sorting"
               />
+            </div>
+
+            {/* Compiler Settings */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enableCompiler"
+                  name="enableCompiler"
+                  checked={formData.enableCompiler}
+                  onChange={(e) => setFormData({ ...formData, enableCompiler: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="enableCompiler" className="ml-2 block text-sm font-medium text-gray-700">
+                  Enable Interactive Java Compiler
+                </label>
+              </div>
+              <p className="text-xs text-gray-600 mt-1 ml-6">
+                When enabled, Java code examples will be interactive and executable by users
+              </p>
             </div>
           </div>
 

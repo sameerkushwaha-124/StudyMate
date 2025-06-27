@@ -40,6 +40,7 @@ app.use('/api/content', require('./routes/content'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/progress', require('./routes/progress'));
+app.use('/api/compiler', require('./routes/compiler'));
 
 // Serve static files from React app
 if (process.env.NODE_ENV === 'production') {

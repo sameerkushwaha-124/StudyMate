@@ -6,6 +6,7 @@ import { AdminProvider } from './context/AdminContext';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import StudyContent from './pages/StudyContent';
+import CompilerPage from './pages/CompilerPage';
 import UserProfile from './pages/UserProfile';
 import ContentUpload from './pages/ContentUpload';
 import AdminLogin from './pages/AdminLogin';
@@ -58,6 +59,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StudyContent />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/compiler"
+              element={
+                <ProtectedRoute>
+                  <CompilerPage />
                 </ProtectedRoute>
               }
             />

@@ -22,7 +22,8 @@ const AdminContentEdit = () => {
     problemStatement: '',
     solution: '',
     difficulty: 'Easy',
-    tags: ''
+    tags: '',
+    enableCompiler: true
   });
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -79,7 +80,8 @@ const AdminContentEdit = () => {
         problemStatement: data.problemStatement || '',
         solution: data.solution || '',
         difficulty: data.difficulty || 'Easy',
-        tags: data.tags ? data.tags.join(', ') : ''
+        tags: data.tags ? data.tags.join(', ') : '',
+        enableCompiler: data.enableCompiler !== undefined ? data.enableCompiler : true
       });
       
       // Extract image URLs from the image objects
@@ -381,6 +383,26 @@ const AdminContentEdit = () => {
                   placeholder="tag1, tag2, tag3"
                 />
               </div>
+            </div>
+
+            {/* Compiler Settings */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enableCompiler"
+                  name="enableCompiler"
+                  checked={formData.enableCompiler}
+                  onChange={(e) => setFormData({ ...formData, enableCompiler: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="enableCompiler" className="ml-2 block text-sm font-medium text-gray-700">
+                  Enable Interactive Java Compiler
+                </label>
+              </div>
+              <p className="text-xs text-gray-600 mt-1 ml-6">
+                When enabled, Java code examples will be interactive and executable by users
+              </p>
             </div>
           </div>
 

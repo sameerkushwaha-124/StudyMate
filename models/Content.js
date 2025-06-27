@@ -63,6 +63,11 @@ const ContentSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  enableCompiler: {
+    type: Boolean,
+    default: true,
+    description: 'Enable interactive Java compiler for this content'
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

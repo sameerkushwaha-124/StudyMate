@@ -6,12 +6,41 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'react-toastify';
+import JavaCodeEditor from '../components/JavaCodeEditor';
 import '../styles/StudyContent.css';
 
 const StudyContent = () => {
   const { category } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Helper function to extract Java code from markdown
+  const extractJavaCode = (markdownText) => {
+    if (!markdownText) return null;
+
+    // Look for Java code blocks in markdown
+    const javaCodeRegex = /```java\n([\s\S]*?)\n```/i;
+    const match = markdownText.match(javaCodeRegex);
+
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+
+    // Also check for code blocks without language specification that look like Java
+    const genericCodeRegex = /```\n([\s\S]*?)\n```/;
+    const genericMatch = markdownText.match(genericCodeRegex);
+
+    if (genericMatch && genericMatch[1]) {
+      const code = genericMatch[1].trim();
+      // Simple heuristic to detect Java code
+      if (code.includes('public class') || code.includes('public static void main') ||
+          code.includes('System.out.println')) {
+        return code;
+      }
+    }
+
+    return null;
+  };
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [subTopics, setSubTopics] = useState([]);
   const [selectedSubTopic, setSelectedSubTopic] = useState('');
@@ -649,12 +678,14 @@ const StudyContent = () => {
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
                     <FiCode className="mr-1.5 h-3.5 w-3.5" />
-                    Example
+                    Code Example
                   </h3>
-                  <div className="bg-gray-900 rounded-lg overflow-hidden">
+
+                  {/* Code Display */}
+                  <div className="bg-gray-900 rounded-lg overflow-hidden mb-3">
                     <SyntaxHighlighter
                       style={tomorrow}
-                      language="javascript"
+                      language="java"
                       customStyle={{
                         margin: 0,
                         padding: '1rem',
@@ -664,6 +695,25 @@ const StudyContent = () => {
                       {selectedContent.codeExample}
                     </SyntaxHighlighter>
                   </div>
+
+                  {/* Compiler Button */}
+                  {selectedContent.enableCompiler !== false && (
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-900 mb-1">Practice with Java Compiler</h4>
+                          <p className="text-xs text-gray-600">Open the interactive compiler to practice and test your code</p>
+                        </div>
+                        <button
+                          onClick={() => window.open(`/compiler?problem=${selectedContent._id}`, '_blank')}
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                        >
+                          <FiCode className="mr-2 h-4 w-4" />
+                          Open Compiler
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -701,39 +751,54 @@ const StudyContent = () => {
               </div>
 
               {/* Solution */}
-              {selectedContent.solution && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="text-sm font-semibold text-green-900 mb-2 flex items-center">
-                    <FiCode className="mr-1.5 h-3.5 w-3.5" />
-                    Solution
-                  </h3>
-                  <div className="prose prose-sm max-w-none text-sm">
-                    <ReactMarkdown
-                      components={{
-                        code({node, inline, className, children, ...props}) {
-                          const match = /language-(\w+)/.exec(className || '');
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              style={tomorrow}
-                              language={match[1]}
-                              PreTag="div"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {selectedContent.solution}
-                    </ReactMarkdown>
+              {selectedContent.solution && (() => {
+                const javaCode = extractJavaCode(selectedContent.solution);
+                const compilerEnabled = selectedContent.enableCompiler !== false;
+
+                return (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 className="text-sm font-semibold text-green-900 mb-2 flex items-center">
+                      <FiCode className="mr-1.5 h-3.5 w-3.5" />
+                      {javaCode && compilerEnabled ? 'Interactive Solution' : 'Solution'}
+                    </h3>
+
+                    {javaCode && compilerEnabled ? (
+                      <div className="bg-white rounded-lg p-2">
+                        <JavaCodeEditor
+                          initialCode={javaCode}
+                          readOnly={false}
+                        />
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none text-sm">
+                        <ReactMarkdown
+                          components={{
+                            code({node, inline, className, children, ...props}) {
+                              const match = /language-(\w+)/.exec(className || '');
+                              return !inline && match ? (
+                                <SyntaxHighlighter
+                                  style={tomorrow}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  {...props}
+                                >
+                                  {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+                          }}
+                        >
+                          {selectedContent.solution}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Tags */}
               {selectedContent.tags && selectedContent.tags.length > 0 && (
