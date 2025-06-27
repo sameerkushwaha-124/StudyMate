@@ -262,14 +262,14 @@ const JavaCodeEditor = ({
       </div>
 
     {/* Code Editor */}
-    <div className="flex-grow min-h-[55%] max-h-[63%] rounded-md relative overflow-hidden">
+    <div className="flex-grow min-h-[56%] max-h-[64%] p-1 rounded-md relative overflow-hidden">
       {!readOnly ? (
         <textarea
           ref={textareaRef}
           value={code}
           onChange={handleCodeChange}
           onKeyDown={handleKeyDown}
-          className="w-full h-full p-4 font-mono text-sm bg-gray-900 text-gray-100 border-0 resize-none focus:outline-none focus:ring-0 overflow-y-auto"
+          className="w-full h-full p-4 font-mono rounded-md text-sm bg-gray-900 text-gray-100 border-0 resize-none focus:outline-none focus:ring-0 overflow-y-auto"
           placeholder="Enter your Java code here..."
           style={{
             fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
@@ -297,7 +297,7 @@ const JavaCodeEditor = ({
     </div>
 
     {/* Output Section */}
-    <div className="flex-shrink-0 flex flex-col max-h-[37.8%] border-t rounded-md border-gray-200">
+    <div className="flex-shrink-0 flex flex-col max-h-[26.5%] border-t  border-gray-200">
       <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <FiTerminal className="h-4 w-4 text-gray-600" />
@@ -313,13 +313,13 @@ const JavaCodeEditor = ({
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto bg-gray-50 p-3">
+      <div className="flex-1 overflow-y-auto bg-gray-50 p-1">
         {output ? (
           <pre className="text-sm font-mono whitespace-pre-wrap bg-gray-900 text-gray-100 p-3 rounded break-words">
             {output}
           </pre>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500 p-3">
+          <div className="flex items-center justify-center h-[30px] text-gray-500 p-3">
             <div className="text-center">
               <FiTerminal className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">Click "Run" to execute your code</p>

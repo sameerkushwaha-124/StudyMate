@@ -162,15 +162,15 @@ const CompilerPage = () => {
       {/* Left Side - Header + Content */}
       <div className="w-1/2 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+        <div className="bg-white border-b border-gray-200 px-4 py-1 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate(-1)}
-              className="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="inline-flex items-center px-2 py-2 text-sm border-2 border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <FiArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              <FiArrowLeft className="mr-2 h-4 w-4 " />
+              
             </button>
             <div className="h-6 w-px bg-gray-300"></div>
             <div>

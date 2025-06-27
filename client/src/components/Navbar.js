@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiHome, FiUpload, FiLogOut, FiBook, FiUser, FiChevronDown } from 'react-icons/fi';
+import { FiHome, FiLogOut, FiBook, FiUser, FiChevronDown } from 'react-icons/fi';
 import GlobalSearch from './GlobalSearch';
 
 const Navbar = () => {
@@ -141,14 +141,6 @@ const Navbar = () => {
           >
             <FiHome className="h-5 w-5" />
             <span>Home</span>
-          </Link>
-
-          <Link
-            to="/upload"
-            className={`nav-item ${isActive('/upload') ? 'active' : ''}`}
-          >
-            <FiUpload className="h-5 w-5" />
-            <span>Upload Content</span>
           </Link>
         </div>
       </div>
