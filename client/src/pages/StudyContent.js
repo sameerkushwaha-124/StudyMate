@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FiChevronLeft, FiChevronRight, FiCode, FiImage, FiFileText, FiSearch, FiPlay, FiX, FiCheck } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
@@ -11,6 +11,7 @@ import '../styles/StudyContent.css';
 const StudyContent = () => {
   const { category } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [subTopics, setSubTopics] = useState([]);
   const [selectedSubTopic, setSelectedSubTopic] = useState('');
@@ -47,6 +48,25 @@ const StudyContent = () => {
     fetchContentProgress();
   }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Handle URL parameters for state restoration
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const topicParam = urlParams.get('topic');
+    const problemParam = urlParams.get('problem');
+
+    if (topicParam && content.length > 0) {
+      setSelectedSubTopic(topicParam);
+      setExpandedSubTopics(new Set([topicParam]));
+
+      if (problemParam) {
+        const problemContent = content.find(item => item._id === problemParam);
+        if (problemContent) {
+          setSelectedContent(problemContent);
+        }
+      }
+    }
+  }, [location.search, content]);
+
   useEffect(() => {
     initializeSubTopics();
   }, [dynamicSubTopics, category]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,9 +90,19 @@ const StudyContent = () => {
     const uniqueTopics = [...new Set(allTopics)];
 
     setSubTopics(uniqueTopics);
-    if (uniqueTopics.length > 0) {
+
+    // Only set default topic if no URL parameters are present
+    const urlParams = new URLSearchParams(location.search);
+    const topicParam = urlParams.get('topic');
+
+    if (!topicParam && uniqueTopics.length > 0) {
       setSelectedSubTopic(uniqueTopics[0]);
       setExpandedSubTopics(new Set([uniqueTopics[0]]));
+
+      // Update URL to reflect default selection
+      const urlParams = new URLSearchParams();
+      urlParams.set('topic', uniqueTopics[0]);
+      navigate(`${location.pathname}?${urlParams.toString()}`, { replace: true });
     }
     setLoading(false);
   };
@@ -104,14 +134,54 @@ const StudyContent = () => {
     }
     setExpandedSubTopics(newExpanded);
     setSelectedSubTopic(subTopic);
+
+    // Update URL to reflect selected topic (clear problem selection)
+    const urlParams = new URLSearchParams();
+    urlParams.set('topic', subTopic);
+    navigate(`${location.pathname}?${urlParams.toString()}`, { replace: true });
+
+    // Clear selected content when switching topics
+    setSelectedContent(null);
   };
 
   const getContentForSubTopic = (subTopic) => {
-    return content.filter(item => item.subTopic === subTopic);
+    return content
+      .filter(item => item.subTopic === subTopic)
+      .sort((a, b) => {
+        // First try to sort by numeric value in title (e.g., "1. Problem", "2. Problem")
+        const aMatch = a.title.match(/^(\d+)/);
+        const bMatch = b.title.match(/^(\d+)/);
+
+        if (aMatch && bMatch) {
+          const aNum = parseInt(aMatch[1]);
+          const bNum = parseInt(bMatch[1]);
+          return aNum - bNum;
+        }
+
+        // If no numbers found, sort alphabetically by title
+        if (!aMatch && !bMatch) {
+          return a.title.localeCompare(b.title);
+        }
+
+        // If only one has a number, prioritize the numbered one
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+
+        return 0;
+      });
   };
 
   const selectContent = (contentItem) => {
     setSelectedContent(contentItem);
+
+    // Update URL to include topic and problem parameters
+    if (contentItem && contentItem._id && contentItem.subTopic) {
+      const urlParams = new URLSearchParams();
+      urlParams.set('topic', contentItem.subTopic);
+      urlParams.set('problem', contentItem._id);
+      navigate(`${location.pathname}?${urlParams.toString()}`, { replace: true });
+    }
+
     // Record access for activity tracking
     if (contentItem && contentItem._id) {
       recordContentAccess(contentItem._id);
@@ -141,6 +211,25 @@ const StudyContent = () => {
       const tagsMatch = item.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
 
       return titleMatch || contentMatch || problemStatementMatch || solutionMatch || tagsMatch;
+    }).sort((a, b) => {
+      // Sort search results in ascending order too
+      const aMatch = a.title.match(/^(\d+)/);
+      const bMatch = b.title.match(/^(\d+)/);
+
+      if (aMatch && bMatch) {
+        const aNum = parseInt(aMatch[1]);
+        const bNum = parseInt(bMatch[1]);
+        return aNum - bNum;
+      }
+
+      if (!aMatch && !bMatch) {
+        return a.title.localeCompare(b.title);
+      }
+
+      if (aMatch && !bMatch) return -1;
+      if (!aMatch && bMatch) return 1;
+
+      return 0;
     });
 
     setTopicSearchResults(results);

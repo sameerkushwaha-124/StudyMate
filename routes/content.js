@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const mongoose = require('mongoose');
 const Content = require('../models/Content');
 const auth = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
@@ -145,8 +146,8 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
       }
     })) : [];
 
-    // Create a default admin user ID if not present
-    const adminId = req.admin.id || req.admin._id || '507f1f77bcf86cd799439011'; // Default ObjectId for admin
+    // Create a proper ObjectId for admin user
+    const adminId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Fixed admin ObjectId
 
     const newContent = new Content({
       title,
