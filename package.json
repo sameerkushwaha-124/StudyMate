@@ -8,8 +8,10 @@
     "dev": "nodemon server.js",
     "client": "cd client && npm start",
     "server": "nodemon server.js",
-    "build": "cd client && npm run build",
-    "heroku-postbuild": "npm install && npm run build"
+    "install-client": "cd client && npm install",
+    "build": "npm run install-client && cd client && npm run build",
+    "render-build": "npm install && npm run install-client && cd client && npm run build",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "axios": "^1.10.0",
