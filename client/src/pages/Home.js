@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   FiCode,
   FiDatabase,
+  FiServer,
   FiArrowRight,
   FiTrendingUp,
   FiBookOpen,
@@ -25,6 +26,7 @@ const Home = () => {
   const [stats, setStats] = useState({
     oopCount: 0,
     dsaCount: 0,
+    sqlCount: 0,
     totalContent: 0
   });
   const [progressStats, setProgressStats] = useState({
@@ -55,19 +57,23 @@ const Home = () => {
       
       let oopCount = 0;
       let dsaCount = 0;
-      
+      let sqlCount = 0;
+
       categories.forEach(category => {
         if (category._id === 'OOP') {
           oopCount = category.subTopics.reduce((sum, topic) => sum + topic.count, 0);
         } else if (category._id === 'DSA') {
           dsaCount = category.subTopics.reduce((sum, topic) => sum + topic.count, 0);
+        } else if (category._id === 'SQL') {
+          sqlCount = category.subTopics.reduce((sum, topic) => sum + topic.count, 0);
         }
       });
 
       setStats({
         oopCount,
         dsaCount,
-        totalContent: oopCount + dsaCount
+        sqlCount,
+        totalContent: oopCount + dsaCount + sqlCount
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -109,6 +115,18 @@ const Home = () => {
       iconColor: 'text-green-600',
       count: stats.dsaCount,
       topics: ['Arrays & Strings', 'Linked Lists', 'Trees & Graphs', 'Sorting & Searching', 'Dynamic Programming', 'Recursion']
+    },
+    {
+      id: 'sql',
+      title: 'SQL & Database Management',
+      description: 'Master SQL queries, database design, and advanced database concepts',
+      icon: FiServer,
+      color: 'from-orange-500 to-red-600',
+      bgColor: 'bg-gradient-to-br from-orange-50 to-red-50',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      count: stats.sqlCount,
+      topics: ['Basic Queries', 'Joins', 'Subqueries', 'Window Functions', 'Database Design', 'Performance Optimization']
     }
   ];
 

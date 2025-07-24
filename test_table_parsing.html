@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Table Query Parsing</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        .table-preview { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>Test SQL Table Query Parsing</h1>
+    
+    <textarea id="queryInput" placeholder="Enter CREATE TABLE statements here...">
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    salary DECIMAL(10,2),
+    department_id INT,
+    hire_date DATE
+);
+
+CREATE TABLE departments (
+    department_id INT PRIMARY KEY,
+    department_name VARCHAR(100) NOT NULL,
+    location VARCHAR(100)
+);
+    </textarea>
+    
+    <button onclick="parseQueries()">Parse Tables</button>
+    
+    <div id="output"></div>
+
+    <script>
+        function parseQueries() {
+            const queries = document.getElementById('queryInput').value;
+            const tables = [];
+            const createTableRegex = /CREATE\s+TABLE\s+(\w+)\s*\(([\s\S]*?)\);/gi;
+            let match;
+
+            while ((match = createTableRegex.exec(queries)) !== null) {
+                const tableName = match[1];
+                const columnsText = match[2];
+                
+                // Parse columns
+                const columns = [];
+                const columnLines = columnsText.split(',').map(line => line.trim());
+                
+                columnLines.forEach(line => {
+                    if (line && !line.toLowerCase().includes('constraint') && !line.toLowerCase().includes('foreign key')) {
+                        const parts = line.trim().split(/\s+/);
+                        if (parts.length >= 2) {
+                            const columnName = parts[0];
+                            const dataType = parts[1];
+                            const constraints = parts.slice(2).join(' ');
+                            columns.push({ name: columnName, type: dataType, constraints });
+                        }
+                    }
+                });
+
+                if (columns.length > 0) {
+                    tables.push({ name: tableName, columns });
+                }
+            }
+
+            displayTables(tables);
+        }
+
+        function displayTables(tables) {
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            if (tables.length === 0) {
+                output.innerHTML = '<p>No valid CREATE TABLE statements found.</p>';
+                return;
+            }
+
+            tables.forEach(table => {
+                const tableDiv = document.createElement('div');
+                tableDiv.className = 'table-preview';
+                
+                let html = `<h3>${table.name}</h3>`;
+                html += '<table>';
+                html += '<thead><tr><th>Column</th><th>Data Type</th><th>Constraints</th></tr></thead>';
+                html += '<tbody>';
+                
+                table.columns.forEach(column => {
+                    html += `<tr>
+                        <td><strong>${column.name}</strong></td>
+                        <td style="color: blue;">${column.type}</td>
+                        <td style="color: gray;">${column.constraints || '-'}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                tableDiv.innerHTML = html;
+                output.appendChild(tableDiv);
+            });
+        }
+
+        // Parse on page load
+        parseQueries();
+    </script>
+</body>
+</html>

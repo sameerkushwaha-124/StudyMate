@@ -9,7 +9,7 @@ const ContentSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['OOP', 'DSA'],
+    enum: ['OOP', 'DSA', 'SQL'],
     uppercase: true
   },
   subTopic: {
@@ -68,6 +68,21 @@ const ContentSchema = new mongoose.Schema({
     default: true,
     description: 'Enable interactive Java compiler for this content'
   },
+  // SQL-specific fields
+  tableQueries: {
+    type: String,
+    default: '',
+    description: 'CREATE TABLE queries for SQL problems'
+  },
+  tableData: [{
+    name: String,
+    columns: [{
+      name: String,
+      type: String,
+      constraints: String
+    }],
+    data: [[String]] // Array of arrays for table rows
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

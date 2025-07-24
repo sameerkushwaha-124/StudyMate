@@ -128,7 +128,9 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
       solution,
       difficulty,
       tags,
-      enableCompiler
+      enableCompiler,
+      tableQueries,
+      tableData
     } = req.body;
 
     // Process uploaded images from Cloudinary
@@ -150,11 +152,14 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
     // Create a proper ObjectId for admin user
     const adminId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Fixed admin ObjectId
 
+    // For SQL category, use problemStatement as content if content is empty
+    const finalContent = content || (category.toUpperCase() === 'SQL' ? problemStatement || 'SQL Problem' : '');
+
     const newContent = new Content({
       title,
       category: category.toUpperCase(),
       subTopic,
-      content,
+      content: finalContent,
       codeExample,
       problemStatement,
       solution,
@@ -162,6 +167,8 @@ router.post('/', adminAuth, upload.array('images', 5), async (req, res) => {
       tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
       enableCompiler: enableCompiler === 'true' || enableCompiler === true,
       images,
+      tableQueries: tableQueries || '',
+      tableData: tableData ? JSON.parse(tableData) : [],
       createdBy: adminId
     });
 

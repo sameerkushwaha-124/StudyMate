@@ -89,7 +89,7 @@ router.get('/content/:category', auth, async (req, res) => {
     const userId = req.user.id;
     const category = req.params.category.toUpperCase();
 
-    if (!['DSA', 'OOP'].includes(category)) {
+    if (!['DSA', 'OOP', 'SQL'].includes(category)) {
       return res.status(400).json({ message: 'Invalid category' });
     }
 

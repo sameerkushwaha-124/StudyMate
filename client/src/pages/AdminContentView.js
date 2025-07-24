@@ -3,7 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { FiArrowLeft, FiEdit3, FiTrash2, FiCode, FiImage, FiFileText } from 'react-icons/fi';
+import ReactMarkdown from 'react-markdown';
 import AdminNavbar from '../components/AdminNavbar';
+
+// Utility function to format statement text
+const formatStatementText = (text) => {
+  if (!text) return text;
+
+  // Replace text in double quotes with bold formatting
+  let formattedText = text.replace(/"([^"]+)"/g, '**$1**');
+
+  // Replace text in parentheses with heading formatting
+  formattedText = formattedText.replace(/\(([^)]+)\)/g, '### $1');
+
+  return formattedText;
+};
 
 const AdminContentView = () => {
   const { id } = useParams();
@@ -157,33 +171,35 @@ const AdminContentView = () => {
           )}
         </div>
 
-        {/* Problem Statement */}
+        {/* Statement */}
         {content.problemStatement && (
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <div className="flex items-center mb-4">
               <FiFileText className="h-5 w-5 text-blue-600 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-900">Problem Statement</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Statement</h2>
             </div>
             <div className="prose max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {content.problemStatement}
-              </p>
+              <div className="text-gray-700 leading-relaxed font-medium text-sm" style={{ lineHeight: '1.7', letterSpacing: '0.015em' }}>
+                <ReactMarkdown>{formatStatementText(content.problemStatement)}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Main Content */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <div className="flex items-center mb-4">
-            <FiFileText className="h-5 w-5 text-green-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+        {/* Constraints - Hidden for SQL */}
+        {content.category !== 'SQL' && (
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div className="flex items-center mb-4">
+              <FiFileText className="h-5 w-5 text-green-600 mr-2" />
+              <h2 className="text-xl font-semibold text-gray-900">Constraints</h2>
+            </div>
+            <div className="prose max-w-none">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap font-medium text-sm" style={{ lineHeight: '1.7', letterSpacing: '0.015em' }}>
+                {content.content}
+              </p>
+            </div>
           </div>
-          <div className="prose max-w-none">
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {content.content}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Code Example */}
         {content.codeExample && (
@@ -208,7 +224,10 @@ const AdminContentView = () => {
               <h2 className="text-xl font-semibold text-gray-900">Solution</h2>
             </div>
             <div className="prose max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm font-medium" style={{
+                lineHeight: '1.7',
+                letterSpacing: '0.015em'
+              }}>
                 {content.solution}
               </p>
             </div>

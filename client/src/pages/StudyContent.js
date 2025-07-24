@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiChevronLeft, FiChevronRight, FiCode, FiImage, FiFileText, FiSearch, FiPlay, FiX, FiCheck } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiCode, FiImage, FiFileText, FiSearch, FiPlay, FiX, FiCheck, FiDatabase } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'react-toastify';
 import JavaCodeEditor from '../components/JavaCodeEditor';
 import '../styles/StudyContent.css';
+
+// Utility function to format statement text
+const formatStatementText = (text) => {
+  if (!text) return text;
+
+  // Replace text in double quotes with bold formatting
+  let formattedText = text.replace(/"([^"]+)"/g, '**$1**');
+
+  // Replace text in parentheses with heading formatting
+  formattedText = formattedText.replace(/\(([^)]+)\)/g, '### $1');
+
+  return formattedText;
+};
 
 const StudyContent = () => {
   const { category } = useParams();
@@ -53,10 +66,11 @@ const StudyContent = () => {
   const [dynamicSubTopics, setDynamicSubTopics] = useState([]);
   const [contentProgress, setContentProgress] = useState({});
 
-  const categoryTitle = category === 'oop' ? 'Object-Oriented Programming' : 'Data Structures & Algorithms';
-  const categoryKey = category === 'oop' ? 'OOP' : 'DSA';
+  const categoryTitle = category === 'oop' ? 'Object-Oriented Programming' :
+                        category === 'sql' ? 'SQL Database' : 'Data Structures & Algorithms';
+  const categoryKey = category === 'oop' ? 'OOP' : category === 'sql' ? 'SQL' : 'DSA';
 
-  // Default subtopics for DSA and OOP
+  // Default subtopics for DSA, OOP, and SQL
   const defaultSubTopics = {
     'DSA': [
       'Arrays', 'Strings', 'Two Pointers', 'Sliding Window', 'Greedy',
@@ -69,6 +83,14 @@ const StudyContent = () => {
       'Abstraction', 'Design Patterns', 'SOLID Principles', 'Constructors',
       'Access Modifiers', 'Method Overriding', 'Method Overloading',
       'Static Members', 'Abstract Classes', 'Interfaces'
+    ],
+    'SQL': [
+      'Basic Queries', 'SELECT Statements', 'WHERE Clauses', 'ORDER BY & GROUP BY',
+      'Joins', 'Inner Joins', 'Outer Joins', 'Self Joins', 'Cross Joins',
+      'Subqueries', 'Correlated Subqueries', 'Common Table Expressions (CTE)',
+      'Aggregate Functions', 'Window Functions', 'String Functions', 'Date Functions',
+      'Indexes', 'Views', 'Stored Procedures', 'Triggers', 'Transactions',
+      'Database Design', 'Normalization', 'Performance Optimization'
     ]
   };
 
@@ -638,21 +660,21 @@ const StudyContent = () => {
                 </div>
               </div>
 
-              {/* Problem Statement */}
+              {/* Statement */}
               {selectedContent.problemStatement && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
                     <FiFileText className="mr-1.5 h-3.5 w-3.5" />
-                    Problem Statement
+                    Statement
                   </h3>
-                  <div className="prose prose-sm max-w-none text-sm">
-                    <ReactMarkdown>{selectedContent.problemStatement}</ReactMarkdown>
+                  <div className="prose prose-sm max-w-none text-sm leading-relaxed font-medium" style={{ lineHeight: '1.7', letterSpacing: '0.015em' }}>
+                    <ReactMarkdown>{formatStatementText(selectedContent.problemStatement)}</ReactMarkdown>
                   </div>
                 </div>
               )}
 
-              {/* Images */}
-              {selectedContent.images && selectedContent.images.length > 0 && (
+              {/* Images for non-SQL content */}
+              {selectedContent.category !== 'SQL' && selectedContent.images && selectedContent.images.length > 0 && (
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
                     <FiImage className="mr-1.5 h-3.5 w-3.5" />
@@ -673,6 +695,45 @@ const StudyContent = () => {
                 </div>
               )}
 
+              {/* Database Tables for SQL content */}
+              {selectedContent.category === 'SQL' && selectedContent.tableData && selectedContent.tableData.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <FiDatabase className="mr-1.5 h-3.5 w-3.5" />
+                    Database Tables
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedContent.tableData.map((table, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3 text-center bg-blue-50 py-2 rounded">
+                          {table.name}
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse border border-gray-300">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-sm">Column</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-sm">Data Type</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-sm">Constraints</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {table.columns.map((column, colIndex) => (
+                                <tr key={colIndex} className={colIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm font-medium">{column.name}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm text-blue-600">{column.type}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-600">{column.constraints || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Code Example */}
               {selectedContent.codeExample && (
                 <div className="mb-4">
@@ -685,7 +746,7 @@ const StudyContent = () => {
                   <div className="bg-gray-900 rounded-lg overflow-hidden mb-3">
                     <SyntaxHighlighter
                       style={tomorrow}
-                      language="java"
+                      language={selectedContent.category === 'SQL' ? 'sql' : 'java'}
                       customStyle={{
                         margin: 0,
                         padding: '1rem',
@@ -696,8 +757,8 @@ const StudyContent = () => {
                     </SyntaxHighlighter>
                   </div>
 
-                  {/* Compiler Button */}
-                  {selectedContent.enableCompiler !== false && (
+                  {/* Compiler Button - Only for non-SQL content */}
+                  {selectedContent.enableCompiler !== false && selectedContent.category !== 'SQL' && (
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -717,47 +778,49 @@ const StudyContent = () => {
                 </div>
               )}
 
-              {/* Main Content (Constraints) */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
-                  <FiFileText className="mr-1.5 h-3.5 w-3.5" />
-                  Constraints
-                </h3>
-                <div className="prose prose-sm max-w-none bg-white p-4 rounded-lg border border-gray-200 text-sm">
-                  <ReactMarkdown
-                    components={{
-                      code({node, inline, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                          <SyntaxHighlighter
-                            style={tomorrow}
-                            language={match[1]}
-                            PreTag="div"
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {selectedContent.content}
-                  </ReactMarkdown>
+              {/* Constraints - Hidden for SQL */}
+              {selectedContent.category !== 'SQL' && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <FiFileText className="mr-1.5 h-3.5 w-3.5" />
+                    Constraints
+                  </h3>
+                  <div className="prose prose-sm max-w-none bg-white p-4 rounded-lg border border-gray-200 text-sm leading-relaxed font-medium" style={{ lineHeight: '1.7', letterSpacing: '0.015em' }}>
+                    <ReactMarkdown
+                      components={{
+                        code({node, inline, className, children, ...props}) {
+                          const match = /language-(\w+)/.exec(className || '');
+                          return !inline && match ? (
+                            <SyntaxHighlighter
+                              style={tomorrow}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                      }}
+                    >
+                      {selectedContent.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Solution */}
               {selectedContent.solution && (() => {
                 const javaCode = extractJavaCode(selectedContent.solution);
-                const compilerEnabled = selectedContent.enableCompiler !== false;
+                const compilerEnabled = selectedContent.enableCompiler !== false && selectedContent.category !== 'SQL';
 
                 return (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 className="text-sm font-semibold text-green-900 mb-2 flex items-center">
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
                       <FiCode className="mr-1.5 h-3.5 w-3.5" />
                       {javaCode && compilerEnabled ? 'Interactive Solution' : 'Solution'}
                     </h3>
@@ -770,7 +833,7 @@ const StudyContent = () => {
                         />
                       </div>
                     ) : (
-                      <div className="prose prose-sm max-w-none text-sm">
+                      <div className="prose prose-sm max-w-none text-sm leading-relaxed font-medium" style={{ lineHeight: '1.7', letterSpacing: '0.015em' }}>
                         <ReactMarkdown
                           components={{
                             code({node, inline, className, children, ...props}) {

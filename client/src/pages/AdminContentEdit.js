@@ -3,9 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { FiSave, FiArrowLeft, FiX, FiImage, FiTrash2 } from 'react-icons/fi';
+import ReactMarkdown from 'react-markdown';
 import CompactDropdown from '../components/CompactDropdown';
 import AdminNavbar from '../components/AdminNavbar';
 import { useAdmin } from '../context/AdminContext';
+
+// Utility function to format statement text
+const formatStatementText = (text) => {
+  if (!text) return text;
+
+  // Replace text in double quotes with bold formatting
+  let formattedText = text.replace(/"([^"]+)"/g, '**$1**');
+
+  // Replace text in parentheses with heading formatting
+  formattedText = formattedText.replace(/\(([^)]+)\)/g, '### $1');
+
+  return formattedText;
+};
 
 const AdminContentEdit = () => {
   const { id } = useParams();
@@ -31,7 +45,8 @@ const AdminContentEdit = () => {
   const [deletedImages, setDeletedImages] = useState([]);
   const [dynamicSubTopics, setDynamicSubTopics] = useState({
     'OOP': [],
-    'DSA': []
+    'DSA': [],
+    'SQL': []
   });
 
   // Predefined subtopics
@@ -43,10 +58,18 @@ const AdminContentEdit = () => {
       'Static Members', 'Abstract Classes', 'Interfaces'
     ],
     'DSA': [
-      'Arrays', 'Strings', 'Two Pointers', 'Sliding Window', 'Greedy', 
-      'Linked List', 'Stack', 'Queue', 'Heap', 'Hashing', 
-      'Tree', 'Graph', 'Dynamic Programming', 'Backtracking', 
+      'Arrays', 'Strings', 'Two Pointers', 'Sliding Window', 'Greedy',
+      'Linked List', 'Stack', 'Queue', 'Heap', 'Hashing',
+      'Tree', 'Graph', 'Dynamic Programming', 'Backtracking',
       'Binary Search', 'Sorting', 'Math', 'Bit Manipulation'
+    ],
+    'SQL': [
+      'Basic Queries', 'SELECT Statements', 'WHERE Clauses', 'ORDER BY & GROUP BY',
+      'Joins', 'Inner Joins', 'Outer Joins', 'Self Joins', 'Cross Joins',
+      'Subqueries', 'Correlated Subqueries', 'Common Table Expressions (CTE)',
+      'Aggregate Functions', 'Window Functions', 'String Functions', 'Date Functions',
+      'Indexes', 'Views', 'Stored Procedures', 'Triggers', 'Transactions',
+      'Database Design', 'Normalization', 'Performance Optimization'
     ]
   };
 
@@ -120,10 +143,17 @@ const AdminContentEdit = () => {
         .map(item => item.subTopic)
         .filter(topic => topic && !categorySubTopics.DSA.includes(topic))
       )];
-      
+
+      const sqlTopics = [...new Set(content
+        .filter(item => item.category === 'SQL')
+        .map(item => item.subTopic)
+        .filter(topic => topic && !categorySubTopics.SQL.includes(topic))
+      )];
+
       setDynamicSubTopics({
         'OOP': oopTopics,
-        'DSA': dsaTopics
+        'DSA': dsaTopics,
+        'SQL': sqlTopics
       });
     } catch (error) {
       console.error('Error fetching existing topics:', error);
@@ -332,6 +362,7 @@ const AdminContentEdit = () => {
                 >
                   <option value="OOP">Object-Oriented Programming</option>
                   <option value="DSA">Data Structures & Algorithms</option>
+                  <option value="SQL">SQL Database</option>
                 </select>
               </div>
 
@@ -385,25 +416,27 @@ const AdminContentEdit = () => {
               </div>
             </div>
 
-            {/* Compiler Settings */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="enableCompiler"
-                  name="enableCompiler"
-                  checked={formData.enableCompiler}
-                  onChange={(e) => setFormData({ ...formData, enableCompiler: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="enableCompiler" className="ml-2 block text-sm font-medium text-gray-700">
-                  Enable Interactive Java Compiler
-                </label>
+            {/* Compiler Settings - Only for DSA/OOP, not SQL */}
+            {formData.category !== 'SQL' && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="enableCompiler"
+                    name="enableCompiler"
+                    checked={formData.enableCompiler}
+                    onChange={(e) => setFormData({ ...formData, enableCompiler: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="enableCompiler" className="ml-2 block text-sm font-medium text-gray-700">
+                    Enable Interactive Java Compiler
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600 mt-1 ml-6">
+                  When enabled, Java code examples will be interactive and executable by users
+                </p>
               </div>
-              <p className="text-xs text-gray-600 mt-1 ml-6">
-                When enabled, Java code examples will be interactive and executable by users
-              </p>
-            </div>
+            )}
           </div>
 
           {/* Content Sections */}
@@ -411,10 +444,10 @@ const AdminContentEdit = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Content</h2>
             
             <div className="space-y-6">
-              {/* Problem Statement */}
+              {/* Statement */}
               <div>
                 <label htmlFor="problemStatement" className="block text-sm font-medium text-gray-700 mb-2">
-                  Problem Statement
+                  Statement
                 </label>
                 <textarea
                   id="problemStatement"
@@ -422,46 +455,93 @@ const AdminContentEdit = () => {
                   value={formData.problemStatement}
                   onChange={onChange}
                   rows={4}
-                  className="input-field"
-                  placeholder="Describe the problem or concept..."
+                  className="input-field text-sm leading-relaxed font-medium"
+                  placeholder={formData.category === 'SQL'
+                    ? "Describe the database problem, query requirements, or scenario..."
+                    : "Describe the problem or concept..."
+                  }
+                  style={{
+                    lineHeight: '1.7',
+                    letterSpacing: '0.015em'
+                  }}
                 />
+                {formData.category === 'SQL' && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    💡 Explain what needs to be queried, calculated, or retrieved from the database
+                  </p>
+                )}
+                <p className="text-xs text-blue-600 mt-2">
+                  ✨ Formatting tips: Use "text" for <strong>bold</strong> and (text) for headings
+                </p>
+
+                {/* Preview Section */}
+                {formData.problemStatement && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="text-xs font-semibold text-blue-900 mb-2">Preview:</h4>
+                    <div className="prose prose-sm max-w-none text-sm">
+                      <ReactMarkdown>{formatStatementText(formData.problemStatement)}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Main Content */}
-              <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                  Main Content *
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
-                  value={formData.content}
-                  onChange={onChange}
-                  required
-                  rows={6}
-                  className="input-field font-mono"
-                  placeholder="Enter the main content (preserves formatting)..."
-                  style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  💡 Preserves exact formatting, line breaks, and spacing
-                </p>
-              </div>
+              {/* Constraints - Hidden for SQL */}
+              {formData.category !== 'SQL' && (
+                <div>
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                    Constraints *
+                  </label>
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={formData.content}
+                    onChange={onChange}
+                    required={formData.category !== 'SQL'}
+                    rows={6}
+                    className="input-field text-sm leading-relaxed font-medium"
+                    placeholder="Enter problem constraints and limitations (preserves formatting)..."
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: '1.7',
+                      letterSpacing: '0.015em'
+                    }}
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    💡 Include input/output constraints, time/space complexity limits, and problem-specific restrictions
+                  </p>
+                </div>
+              )}
 
               {/* Code Example */}
               <div>
                 <label htmlFor="codeExample" className="block text-sm font-medium text-gray-700 mb-2">
-                  Code Example
+                  Code Example {formData.category === 'SQL' ? '*' : ''}
                 </label>
                 <textarea
                   id="codeExample"
                   name="codeExample"
                   value={formData.codeExample}
                   onChange={onChange}
+                  required={formData.category === 'SQL'}
                   rows={8}
-                  className="input-field font-mono text-sm"
-                  placeholder="// Enter code example here..."
+                  className="input-field font-mono text-sm leading-relaxed"
+                  placeholder={formData.category === 'SQL'
+                    ? "Enter SQL queries, stored procedures, or database code examples..."
+                    : "// Enter code example here..."
+                  }
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                    lineHeight: '1.6',
+                    letterSpacing: '0.025em',
+                    fontSize: '14px'
+                  }}
                 />
+                {formData.category === 'SQL' && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    💡 Enter SQL queries with proper formatting and indentation
+                  </p>
+                )}
               </div>
 
               {/* Solution */}
@@ -475,8 +555,12 @@ const AdminContentEdit = () => {
                   value={formData.solution}
                   onChange={onChange}
                   rows={6}
-                  className="input-field"
-                  placeholder="Provide solution or detailed explanation..."
+                  className="input-field text-sm leading-relaxed font-medium"
+                  placeholder="Provide solution explanation or additional notes..."
+                  style={{
+                    lineHeight: '1.7',
+                    letterSpacing: '0.015em'
+                  }}
                 />
               </div>
             </div>

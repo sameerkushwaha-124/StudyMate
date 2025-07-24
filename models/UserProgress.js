@@ -14,7 +14,7 @@ const UserProgressSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['DSA', 'OOP']
+    enum: ['DSA', 'OOP', 'SQL']
   },
   subtopic: {
     type: String,
